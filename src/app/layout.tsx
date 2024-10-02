@@ -2,6 +2,9 @@ import "~/styles/globals.css";
 
 import { GeistSans } from "geist/font/sans";
 import { type Metadata } from "next";
+import { ThemeProvider } from "~/components/theme-provider";
+import { ClerkProvider } from "@clerk/nextjs";
+import { dark } from "@clerk/themes";
 
 export const metadata: Metadata = {
   title: "Create T3 App",
@@ -13,8 +16,30 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${GeistSans.variable}`}>
-      <body>{children}</body>
-    </html>
+    <>
+      <ClerkProvider
+        appearance={{
+          baseTheme: dark,
+        }}
+      >
+        <html
+          lang="en"
+          suppressHydrationWarning
+          className={`${GeistSans.variable}`}
+        >
+          <head />
+          <body>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="light"
+              enableSystem
+              disableTransitionOnChange
+            >
+              {children}
+            </ThemeProvider>
+          </body>
+        </html>
+      </ClerkProvider>
+    </>
   );
 }

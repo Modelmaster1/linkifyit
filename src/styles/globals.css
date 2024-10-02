@@ -3,6 +3,46 @@
 @tailwind utilities;
 @layer base {
   :root {
-    --radius: 0.5rem
-  }
+    --radius: 0.5rem}
+}
+
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+/* Tooltip text */
+.tooltip .tooltiptext {
+  visibility: hidden;
+ 
+  /* Position the tooltip text - see examples below! */
+  position: absolute;
+  z-index: 1;
+  width: 120px;
+  top: 0;
+  left: 105%;
+}
+
+/* Show the tooltip text when you mouse over the tooltip container */
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+}
+
+.minimal-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #9193b35c transparent;
+}
+
+.minimal-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.minimal-scrollbar::-webkit-scrollbar-track {
+  background: #1F2937;
+}
+
+.minimal-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #4B5563;
+  border-radius: 20px;
+  border: 3px solid #1F2937;
 }
