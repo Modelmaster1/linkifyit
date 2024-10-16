@@ -1,6 +1,7 @@
 import React, { CSSProperties } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { LinkView, LinkViewMedium } from "./2/page";
 
 export function SortableItem(props: any) {
   const {
@@ -37,19 +38,7 @@ export function SortableItem(props: any) {
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <div
-        className="aspect-square h-[140px] rounded-lg bg-white text-black"
-        style={{
-          cursor: isDragging ? "grabbing" : "grab",
-          boxShadow: isDragging
-            ? "rgb(63 63 68 / 5%) 0px 2px 0px 2px, rgb(34 33 81 / 15%) 0px 2px 3px 2px"
-            : "rgb(63 63 68 / 5%) 0px 0px 0px 1px, rgb(34 33 81 / 15%) 0px 1px 3px 0px",
-          aspectRatio: props.id == 5 ? "3/1" : "1/1",
-        }}
-      >
-        hel
-        {props.id}
-      </div>
+      <LinkView/>
     </div>
   );
 }

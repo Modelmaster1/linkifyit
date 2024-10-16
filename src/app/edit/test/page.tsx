@@ -37,7 +37,7 @@ export default function Page() {
       onDragEnd={handleDragEnd}
     >
       <SortableContext items={items} strategy={rectSortingStrategy}>
-        <Grid columns={5}>
+        <Grid columns={6}>
           {items.map((id) => (
             <SortableItem key={id} id={id} />
           ))}
