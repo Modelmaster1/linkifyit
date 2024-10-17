@@ -1,11 +1,26 @@
 "use client";
-import { Link, RectangleHorizontal, Scan, Square, X } from "lucide-react";
+import {
+  Link,
+  LucideProps,
+  Pen,
+  RectangleHorizontal,
+  Scan,
+  Square,
+  X,
+} from "lucide-react";
 import {
   Responsive as ResponsiveGridLayout,
   WidthProvider,
   Responsive,
 } from "react-grid-layout";
-import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
+import React, {
+  Dispatch,
+  ForwardRefExoticComponent,
+  RefAttributes,
+  SetStateAction,
+  useEffect,
+  useState,
+} from "react";
 import { Layout } from "react-grid-layout";
 import getDominantColors, { ImgeColorOptions } from "~/server/getColors";
 import "~/styles/gg.css";
@@ -18,7 +33,7 @@ interface BreakpointsStuff {
   [P: string]: number;
 }
 
-interface LayoutStuff {
+export interface LayoutStuff {
   [P: string]: Layout[];
 }
 
@@ -52,53 +67,56 @@ export default function MyFirstGrid() {
   const cols: BreakpointsStuff = { xl: 8, lg: 6, md: 4, sm: 3, xs: 2, xxs: 1 };
 
   function adjustSize(id: string, newW: number = 1, newH: number = 1) {
-    if (!currentLayout.xl) return
-    const oldItem = currentLayout.xl?.find((item) => item.i == id)
-    if (!oldItem) return
+    if (!currentLayout.xl) return;
+    const oldItem = currentLayout.xl?.find((item) => item.i == id);
+    if (!oldItem) return;
 
-    const newItem = {...oldItem, w: newW, h: newH}
+    const newItem = { ...oldItem, w: newW, h: newH };
 
-    var newLayout = currentLayout
-    if (!newLayout.xl) return
-    newLayout.xl?.filter((item) => item.i = id)
+    var newLayout = currentLayout;
+    if (!newLayout.xl) return;
+    newLayout.xl?.filter((item) => item.i == id);
 
-    newLayout = {...newLayout, xl: [...newLayout.xl, newItem]}
+    newLayout = { ...newLayout, xl: [...newLayout.xl, newItem] };
 
-    setCurrentLayout(newLayout)
+    setCurrentLayout(newLayout);
   }
 
-  const defaultLayouts: LayoutStuff = {
-    xl: [
-      { i: "0", x: 0, y: 0, w: 1, h: 1, isResizable: true, maxW: 2, maxH: 2 },
-      { i: "1", x: 1, y: 0, w: 1, h: 1, isResizable: true, maxW: 2, maxH: 2 },
-      { i: "2", x: 2, y: 0, w: 1, h: 1, isResizable: true, maxW: 2, maxH: 2 },
-      { i: "3", x: 3, y: 0, w: 1, h: 1, isResizable: true, maxW: 2, maxH: 2 },
-      { i: "4", x: 4, y: 0, w: 1, h: 1, isResizable: true, maxW: 2, maxH: 2 },
-      { i: "5", x: 5, y: 0, w: 1, h: 1, isResizable: true, maxW: 2, maxH: 2 },
-      { i: "6", x: 6, y: 0, w: 1, h: 1, isResizable: true, maxW: 2, maxH: 2 },
-      { i: "7", x: 7, y: 0, w: 1, h: 1, isResizable: true, maxW: 2, maxH: 2 },
-      { i: "8", x: 0, y: 1, w: 1, h: 1, isResizable: true, maxW: 2, maxH: 2 },
-      { i: "9", x: 1, y: 1, w: 1, h: 1, isResizable: true, maxW: 2, maxH: 2 },
-      { i: "10", x: 2, y: 1, w: 1, h: 1, isResizable: true, maxW: 2, maxH: 2 },
-      { i: "11", x: 3, y: 1, w: 1, h: 1, isResizable: true, maxW: 2, maxH: 2 },
-      { i: "111", x: 4, y: 1, w: 2, h: 1, isResizable: true, maxW: 2, maxH: 2 },
-    ],
-  };
+  const otherProps = { w: 1, h: 1, isResizable: true, maxW: 2, maxH: 2 };
 
-  const [currentLayout, setCurrentLayout] = useState<LayoutStuff>(defaultLayouts);
-  const [currentRowHeight, setCurrentRowHeight] = useState(175);
+  function getLayouts() {
+    const numOfCols = getCurrentCols();
+    if (!numOfCols) return;
+    let result: LayoutStuff = {};
+    let lastLink: Layout | null = null;
 
-  useEffect(() => {
-    function handleResize() {
-      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-      setCurrentRowHeight(getDynamicRowSize);
-    }
+    links.forEach((link) => {
+      const newX = lastLink?.x
+        ? (lastLink.x ?? 0 === numOfCols - 1)
+          ? 0
+          : lastLink.x + 1
+        : 0;
+      const newY = lastLink?.y
+        ? (lastLink.x ?? 0 === numOfCols - 1)
+          ? lastLink.y + 1
+          : lastLink.y
+        : 0;
 
-    window.addEventListener("resize", handleResize);
-    handleResize();
+      const newItem = {
+        i: String(link.id),
+        x: newX,
+        y: newY,
+        ...otherProps,
+      };
 
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+      result.xl?.push(newItem);
+      lastLink = newItem;
+    });
+
+    console.log(result);
+
+    return result;
+  }
 
   function getCurrentCols() {
     for (const key in breakpoints) {
@@ -108,15 +126,41 @@ export default function MyFirstGrid() {
     }
   }
 
-  function getDynamicRowSize() {
-    const numOfCols = getCurrentCols();
+  const defaultLayouts: LayoutStuff = {
+    xl: [
+      { i: "0", x: 0, y: 0, ...otherProps },
+      { i: "1", x: 1, y: 0, ...otherProps },
+      { i: "2", x: 2, y: 0, ...otherProps },
+      { i: "3", x: 3, y: 0, ...otherProps },
+      { i: "4", x: 4, y: 0, ...otherProps },
+      { i: "5", x: 5, y: 0, ...otherProps },
+      { i: "6", x: 6, y: 0, ...otherProps },
+      { i: "7", x: 7, y: 0, ...otherProps },
+      { i: "8", x: 0, y: 1, ...otherProps },
+      { i: "9", x: 1, y: 1, ...otherProps },
+      { i: "10", x: 2, y: 1, ...otherProps },
+      { i: "11", x: 3, y: 1, ...otherProps },
+      { i: "111", x: 4, y: 1, ...otherProps, w: 2 },
+    ],
+  };
 
-    if (!numOfCols) {
-      return 175; // fallback in case of error
+  const [currentLayout, setCurrentLayout] =
+    useState<LayoutStuff>(defaultLayouts);
+
+  useEffect(() => {
+    getLayouts();
+  }, [links]);
+
+  useEffect(() => {
+    function handleResize() {
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
     }
 
-    return (windowSize.width - numOfCols * 10) / numOfCols - 1.5;
-  }
+    window.addEventListener("resize", handleResize);
+    handleResize();
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // layout is an array of objects, see the demo for more complete usage
   return (
@@ -124,13 +168,11 @@ export default function MyFirstGrid() {
       className="overflow-x-hidden bg-[#110e21] text-[#c4c5ea]"
       style={{ width: "100vw", height: "100vh" }}
     >
-      <button onClick={() => adjustSize("8", 2, 1)}>Resize item 8</button>
 
       <ResponsiveGridLayout
         className="layout"
         cols={cols}
         breakpoints={breakpoints}
-        layouts={currentLayout}
         width={windowSize.width}
         compactType="vertical"
         verticalCompact={true}
@@ -142,46 +184,17 @@ export default function MyFirstGrid() {
           }
         }}
       >
-        <div
-          key="111"
-          style={{
-            borderRadius: "2rem",
-          }}
-        >
-          <div
-            className="flex h-full flex-row justify-between gap-8 bg-gray-900/70 p-3"
-            style={{
-              borderRadius: "2rem",
-              //aspectRatio: 2 / 1,
-            }}
-          >
-            <div className="flex h-full flex-col justify-between">
-              <img
-                className="h-14 w-14 overflow-hidden object-cover"
-                style={{ borderRadius: "1.4rem" }}
-                src={
-                  "https://imgs.search.brave.com/MMmOkchhxhGPcIDTpif9ud7kCm6t4Q5aUscYatv8jC4/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90NC5m/dGNkbi5uZXQvanBn/LzA4LzM3LzM1LzU5/LzM2MF9GXzgzNzM1/NTk1OF9Qdno2bHhC/VjZrdDJUNkYzWkRz/N1M3bWhaN2p1OFhQ/NC5qcGc"
-                }
-              />
-              <div className="pb-2 ps-1">Instagram</div>
-            </div>
-            <div className="flex h-full flex-col justify-center">
-              <div className="text-sm">
-                hello this right here is an account that you should definetly
-                follow right away - {links.length}
-                {currentLayout.xl?.find((item) => item.i === "111")?.x ??
-                  0} | {currentLayout.xl?.find((item) => item.i === "111")?.y}
-              </div>
-            </div>
-          </div>
-        </div>
-
         {currentLayout.xl &&
           currentLayout.xl
             .filter((item) => item.i !== "111")
             .map((item, index) => (
-              <div key={item.i}>
-                <LinkView currentLayout={currentLayout} setCurrentLayout={setCurrentLayout} layoutProps={item} item={links[index]} />
+              <div key={item.i} data-grid={{ ...item }}>
+                <LinkView
+                  currentLayout={currentLayout}
+                  setCurrentLayout={setCurrentLayout}
+                  layoutProps={item}
+                  item={links[index]}
+                />
               </div>
             ))}
       </ResponsiveGridLayout>
@@ -199,12 +212,12 @@ export function LinkView({
   item,
   layoutProps,
   currentLayout,
-  setCurrentLayout
+  setCurrentLayout,
 }: {
   item: links | undefined;
   layoutProps: Layout;
-  currentLayout: LayoutStuff
-  setCurrentLayout: Dispatch<React.SetStateAction<LayoutStuff>>
+  currentLayout: LayoutStuff;
+  setCurrentLayout: Dispatch<React.SetStateAction<LayoutStuff>>;
 }) {
   const [colors, setColors] = useState<string[]>([]);
   const imageURL = item?.iconURL ?? undefined;
@@ -232,14 +245,15 @@ export function LinkView({
           className="h-full text-white"
           style={{
             borderRadius: "2rem",
-            background: `linear-gradient(45deg, ${colors[0]}, ${colors[1]}, ${colors[2]})`,
+            background: `${colors.length <= 0 ? "rgb(24 23 37 / 1)" : `linear-gradient(45deg, ${colors[0]}, ${colors[1]}, ${colors[2]})`}`,
           }}
         >
           <div
-            className="flex h-full flex-col justify-between bg-gray-900/70 p-3"
+            className="flex h-full flex-col justify-between p-3"
             style={{
               borderRadius: "2rem",
-              //aspectRatio: 1/1
+              //aspectRatio: 1/1"
+              background: "rgb(24 23 37 / 0.5)",
             }}
           >
             <img
@@ -254,7 +268,7 @@ export function LinkView({
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent
-        className="rounded-3xl text-[#c4c5ea]"
+        className="rounded-3xl text-[#c4c5ea] drop-shadow-lg"
         style={{ backgroundColor: "#181725" }}
       >
         <input
@@ -271,29 +285,61 @@ export function LinkView({
           change the name for all pages
         </div>
 
-        <div className="mx-5 mt-2 flex items-center justify-evenly bg-[#110e21] p-2" style={{borderRadius: "2rem"}}>
+        <div
+          className="mx-5 mt-2 flex items-center justify-evenly bg-[#110e21] p-2"
+          style={{ borderRadius: "2rem" }}
+        >
           <div className="aspect-square w-4/12">
-            <div onClick={() => adjustSize(1,1)} className={`flex flex-col h-full w-full items-center justify-center rounded-3xl ${(layoutProps.w == 1) && "bg-[#d97fb0]/80"}`}>
+            <div
+              className={`flex h-full w-full flex-col items-center justify-center rounded-3xl ${layoutProps.w == 1 && "bg-[#d97fb0]/80"}`}
+            >
               <Square />
-              
+
               <div className="text-xs">small</div>
             </div>
           </div>
           <div className="aspect-square w-4/12">
-            <div className="flex flex-col h-full w-full items-center justify-center rounded-3xl bg-[#d97fb0]/80">
+            <div
+              className={`flex h-full w-full flex-col items-center justify-center rounded-3xl ${layoutProps.w == 2 && layoutProps.h == 1 && "bg-[#d97fb0]/80"}`}
+            >
               <RectangleHorizontal />
               <div className="text-xs">medium</div>
             </div>
           </div>
           <div className="aspect-square w-4/12">
-            <div className="flex flex-col h-full w-full items-center justify-center rounded-3xl bg-[#d97fb0]/80">
+            <div
+              className={`flex h-full w-full flex-col items-center justify-center rounded-3xl ${layoutProps.w == 2 && layoutProps.h == 2 && "bg-[#d97fb0]/80"}`}
+            >
               <Scan />
               <div className="text-xs">large</div>
             </div>
           </div>
         </div>
+        <div className="mx-5 mt-4 text-base opacity-50">Actions</div>
+        <div className="mx-5 mb-5 mt-2 flex flex-col gap-1 text-sm">
+          <LinkContextAction name="Edit Link" Icon={Pen} />
+          <LinkContextAction name="Remove Link from Page" Icon={X} />
+        </div>
       </ContextMenuContent>
     </ContextMenu>
+  );
+}
+
+interface LinkContextActionProps {
+  name: string;
+  Icon: ForwardRefExoticComponent<
+    Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>
+  >;
+}
+
+function LinkContextAction({ name, Icon }: LinkContextActionProps) {
+  return (
+    <div className="flex cursor-pointer items-center justify-between rounded-full opacity-50 hover:bg-[#110e21]/80 hover:text-white hover:opacity-100">
+      <div className="flex items-center gap-2 p-2">
+        <Icon className="size-4" />
+        <div>{name}</div>
+      </div>
+    </div>
   );
 }
 

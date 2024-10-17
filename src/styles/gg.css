@@ -57,10 +57,12 @@
     position: absolute;
     right: 3px;
     bottom: 3px;
-    width: 5px;
-    height: 5px;
-    border-right: 2px solid rgba(0, 0, 0, 0.4);
-    border-bottom: 2px solid rgba(0, 0, 0, 0.4);
+    width: 8px;
+    height: 8px;
+    border-bottom-right-radius: 3px;
+    border-right: 2px solid #c4c5ea3f;
+    border-bottom: 2px solid #c4c5ea3f;
+
   }
   
   .react-resizable-hide > .react-resizable-handle {
