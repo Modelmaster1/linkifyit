@@ -8,11 +8,7 @@ import {
   Square,
   X,
 } from "lucide-react";
-import {
-  Responsive as ResponsiveGridLayout,
-  WidthProvider,
-  Responsive,
-} from "react-grid-layout";
+import { Responsive as ResponsiveGridLayout } from "react-grid-layout";
 import React, {
   Dispatch,
   ForwardRefExoticComponent,
@@ -66,22 +62,6 @@ export default function MyFirstGrid() {
   };
   const cols: BreakpointsStuff = { xl: 8, lg: 6, md: 4, sm: 3, xs: 2, xxs: 1 };
 
-  function adjustSize(id: string, newW: number = 1, newH: number = 1) {
-    if (!currentLayout.xl) return;
-    const oldItem = currentLayout.xl?.find((item) => item.i == id);
-    if (!oldItem) return;
-
-    const newItem = { ...oldItem, w: newW, h: newH };
-
-    var newLayout = currentLayout;
-    if (!newLayout.xl) return;
-    newLayout.xl?.filter((item) => item.i == id);
-
-    newLayout = { ...newLayout, xl: [...newLayout.xl, newItem] };
-
-    setCurrentLayout(newLayout);
-  }
-
   const otherProps = { w: 1, h: 1, isResizable: true, maxW: 2, maxH: 2 };
 
   function getLayouts() {
@@ -126,7 +106,7 @@ export default function MyFirstGrid() {
     }
   }
 
-  const defaultLayouts: LayoutStuff = {
+  var defaultLayouts: LayoutStuff = {
     xl: [
       { i: "0", x: 0, y: 0, ...otherProps },
       { i: "1", x: 1, y: 0, ...otherProps },
@@ -148,10 +128,6 @@ export default function MyFirstGrid() {
     useState<LayoutStuff>(defaultLayouts);
 
   useEffect(() => {
-    getLayouts();
-  }, [links]);
-
-  useEffect(() => {
     function handleResize() {
       setWindowSize({ width: window.innerWidth, height: window.innerHeight });
     }
@@ -162,24 +138,57 @@ export default function MyFirstGrid() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  var layouts: LayoutStuff = getLayouts()!;
+
+  function handleResize(id: string, size: "small" | "medium" | "large") {
+    const sizeMap = {
+      small: { w: 1, h: 1 },
+      medium: { w: 2, h: 1 },
+      large: { w: 2, h: 2 },
+    };
+
+    const { w, h } = sizeMap[size];
+    adjustSize(id, w, h);
+  }
+
+  function adjustSize(
+    id: string,
+    newW: number,
+    newH: number,
+    prevLayouts?: LayoutStuff,
+  ) {
+    const updatedLayouts = { ...prevLayouts };
+
+    for (const breakpoint in updatedLayouts) {
+      if (!updatedLayouts[breakpoint]) continue;
+
+      updatedLayouts[breakpoint] = updatedLayouts[breakpoint].map((item) =>
+        item.i === id ? { ...item, w: newW, h: newH } : item,
+      );
+    }
+
+    return (updatedLayouts);
+  }
+
   // layout is an array of objects, see the demo for more complete usage
   return (
     <div
       className="overflow-x-hidden bg-[#110e21] text-[#c4c5ea]"
       style={{ width: "100vw", height: "100vh" }}
     >
-
       <ResponsiveGridLayout
         className="layout"
         cols={cols}
+        layouts={defaultLayouts}
         breakpoints={breakpoints}
         width={windowSize.width}
         compactType="vertical"
         verticalCompact={true}
         onLayoutChange={(newLayout) => {
           if (currentLayout.xl !== newLayout) {
+            const resized8 = adjustSize("8", 2, 2, {xl: newLayout});
             setCurrentLayout({
-              xl: newLayout,
+              xl: resized8.xl ?? []
             });
           }
         }}
@@ -188,8 +197,9 @@ export default function MyFirstGrid() {
           currentLayout.xl
             .filter((item) => item.i !== "111")
             .map((item, index) => (
-              <div key={item.i} data-grid={{ ...item }}>
+              <div key={item.i}>
                 <LinkView
+                  handleResize={handleResize}
                   currentLayout={currentLayout}
                   setCurrentLayout={setCurrentLayout}
                   layoutProps={item}
@@ -213,11 +223,13 @@ export function LinkView({
   layoutProps,
   currentLayout,
   setCurrentLayout,
+  handleResize,
 }: {
   item: links | undefined;
   layoutProps: Layout;
   currentLayout: LayoutStuff;
   setCurrentLayout: Dispatch<React.SetStateAction<LayoutStuff>>;
+  handleResize: (id: string, size: "small" | "medium" | "large") => void;
 }) {
   const [colors, setColors] = useState<string[]>([]);
   const imageURL = item?.iconURL ?? undefined;
@@ -286,33 +298,29 @@ export function LinkView({
         </div>
 
         <div
-          className="mx-5 mt-2 flex items-center justify-evenly bg-[#110e21] p-2"
+          className="mx-5 mt-2 flex h-20 items-center justify-evenly bg-[#110e21] p-2"
           style={{ borderRadius: "2rem" }}
         >
-          <div className="aspect-square w-4/12">
-            <div
-              className={`flex h-full w-full flex-col items-center justify-center rounded-3xl ${layoutProps.w == 1 && "bg-[#d97fb0]/80"}`}
-            >
-              <Square />
-
-              <div className="text-xs">small</div>
-            </div>
+          <div
+            className={`flex h-full w-full flex-col items-center justify-center rounded-3xl ${layoutProps.w == 1 && "bg-[#d97fb0]/80"}`}
+            onClick={() => handleResize(layoutProps.i, "small")}
+          >
+            <Square />
+            <div className="text-xs">small</div>
           </div>
-          <div className="aspect-square w-4/12">
-            <div
-              className={`flex h-full w-full flex-col items-center justify-center rounded-3xl ${layoutProps.w == 2 && layoutProps.h == 1 && "bg-[#d97fb0]/80"}`}
-            >
-              <RectangleHorizontal />
-              <div className="text-xs">medium</div>
-            </div>
+          <div
+            className={`flex h-full w-full flex-col items-center justify-center rounded-3xl ${layoutProps.w == 2 && layoutProps.h == 1 && "bg-[#d97fb0]/80"}`}
+            onClick={() => handleResize(layoutProps.i, "medium")}
+          >
+            <RectangleHorizontal />
+            <div className="text-xs">medium</div>
           </div>
-          <div className="aspect-square w-4/12">
-            <div
-              className={`flex h-full w-full flex-col items-center justify-center rounded-3xl ${layoutProps.w == 2 && layoutProps.h == 2 && "bg-[#d97fb0]/80"}`}
-            >
-              <Scan />
-              <div className="text-xs">large</div>
-            </div>
+          <div
+            className={`flex h-full w-full flex-col items-center justify-center rounded-3xl ${layoutProps.w == 2 && layoutProps.h == 2 && "bg-[#d97fb0]/80"}`}
+            onClick={() => handleResize(layoutProps.i, "large")}
+          >
+            <Scan />
+            <div className="text-xs">large</div>
           </div>
         </div>
         <div className="mx-5 mt-4 text-base opacity-50">Actions</div>
