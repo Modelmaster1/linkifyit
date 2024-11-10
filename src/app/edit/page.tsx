@@ -33,13 +33,17 @@ import {
   UserInfo,
 } from "../models";
 import { getLinks, getPages } from "~/server/db/getUserItems";
-import GridPage from "./test/2/page";
+import GridPage, { GridPageProps } from "./test/2/page";
 import CustomiseOptions from "./test/_comps/customise";
 import { OptionsViewModelType } from "./test/_comps/options";
 import LinksSide from "./test/_comps/linksSide";
 import PageInfoView from "./test/_comps/pageInfo";
-import { updatePage } from "~/server/db/pageActions";
+import { updatePage, updatePageScreenshot } from "~/server/db/pageActions";
 import { LayoutStuff } from "./test/2/gridOptions";
+import HeaderCarousel from "./test/_comps/headerCarousel";
+import { useRouter } from "next/navigation";
+import { captureGridAndUpload } from "~/server/getScreenshot";
+import { info } from "console";
 
 export const defaultCustomisationOptions: CustomiseOptionsModel = {
   // make these the correnct ones
@@ -51,12 +55,23 @@ export const defaultCustomisationOptions: CustomiseOptionsModel = {
   textColor: "#FFFFFF",
 };
 
-export default function EditPage({selectedPageSlug}: {selectedPageSlug?: string}) {
+export default function EditPage({
+  selectedPageSlug,
+}: {
+  selectedPageSlug?: string;
+}) {
+  const [searchFocus, setSearchFocus] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [selectedPage, setSelectedPage] = useState<pages | null>(null);
   const [pages, setPages] = useState<pages[]>([]);
   const [links, setLinks] = useState<links[]>([]);
 
   const userInfo = useClerk()?.user;
+  const router = useRouter();
+
+  function focusInput() {
+    inputRef.current?.focus();
+  }
 
   useEffect(() => {
     fetchLinks();
@@ -86,37 +101,94 @@ export default function EditPage({selectedPageSlug}: {selectedPageSlug?: string}
 
   return (
     <>
-      {selectedPage ? (
-        <ClientEditPage
-          selectedPage={selectedPage}
-          links={links}
-          userInfo={{
-            fullName: userInfo?.fullName ?? null,
-            imageUrl: userInfo?.imageUrl ?? null,
-            username: userInfo?.username ?? null,
-          }}
-        />
-      ) : (
-        <div>
-        <div>loading</div>
-        <select
-            className="w-full rounded-full bg-[#181726] p-2 text-sm text-white outline outline-[#9193b3]/20"
-            onChange={(e) =>
-              setSelectedPage(
-                pages.find((p) => p.id === parseInt(e.target.value)) ?? null,
-              )
-            }
-          >
-            {pages.map((p) => {
-              return (
-                <option key={p.id} value={p.id}>
-                  {p.overrideName ?? "No Name"} - /{p.slug}
-                </option>
-              );
-            })}
-          </select>
+      <div className="h-full max-h-screen overflow-y-hidden bg-[#110e21] text-[#c4c5ea]">
+        <div className="flex w-full items-center justify-between p-4">
+          <div className="flex w-full items-center gap-16">
+            <div className="flex items-center gap-4">
+              <div className="flex aspect-square h-10 items-center justify-center rounded-full bg-[#9193b3]/70 text-white outline outline-[#9193b3]/50">
+                <Link className="m-auto" size={20} />
+              </div>
+              <div className="text-xl font-semibold">LinkifyIT</div>
+            </div>
+            <div
+              onClick={focusInput}
+              className={`flex w-6/12 items-center gap-2 rounded-full bg-[#181726] p-3 ${searchFocus && "outline"} outline-2 outline-[#d97fb0]`}
+            >
+              <Search className="size-5 cursor-pointer" />
+              <input
+                type="text"
+                ref={inputRef}
+                className="w-full bg-transparent outline-none focus:outline-none"
+                onFocus={() => setSearchFocus(true)}
+                onBlur={() => setSearchFocus(false)}
+                placeholder="Try Searching..."
+              />
+            </div>
           </div>
-      )}
+
+          <div className="flex items-center gap-4">
+            <SignedIn>
+              <div className="flex items-center gap-4 rounded-full bg-[#181726] p-3">
+                <Menu className="size-5 cursor-pointer" />
+                <UserButton />
+              </div>
+            </SignedIn>
+            <SignedOut>
+              <SignInButton />
+            </SignedOut>
+            <div className="cursor-pointer rounded-full bg-[#d97fb0] p-3 text-white hover:bg-[#9193b3]">
+              <Plus className="size-5" />
+            </div>
+          </div>
+        </div>
+        {selectedPage ? (
+          <ClientEditPage
+            selectedPage={selectedPage}
+            links={links}
+            userInfo={{
+              fullName: userInfo?.fullName ?? null,
+              imageUrl: userInfo?.imageUrl ?? null,
+              username: userInfo?.username ?? null,
+            }}
+          />
+        ) : (
+          <div className="flex h-screen max-h-screen minimal-scrollbar flex-col gap-4 overflow-auto px-5 pb-40">
+            <div className="mt-10 font-bold opacity-80">All pages</div>
+
+            <div className="flex flex-wrap gap-4">
+              {pages.map((p) => (
+                <button
+                  key={p.id}
+                  className="flex w-[300px] flex-col gap-2 rounded-3xl p-4 text-left outline outline-2 outline-[#2b2b31]/70"
+                  onClick={() => {
+                    setSelectedPage(p);
+                  }}
+                >
+                  <div className="h-[200px] w-full">
+                    {p.screenshot ? (
+                      <img draggable={false} className="h-full pt-1 w-full object-contain rounded-3xl overflow-hidden" style={{backgroundColor: p.customisationOptions?.backgroundColor}} src={p.screenshot ?? undefined} />
+                    ) : (
+                      <div className="text-xs h-full w-full flex justify-center items-center">No Preview</div>
+                    )}
+
+                  </div>
+                  
+                  <div className="text-lg font-semibold">/{p.slug}</div>
+                  <div className="line-clamp-1 text-sm opacity-80">
+                    {p.description}
+                  </div>
+                </button>
+              ))}
+              <button className="flex w-[400px] flex-col items-center justify-center gap-4 rounded-3xl p-4 text-left opacity-70 outline-dashed outline-2 outline-[#2b2b31]">
+                <div className="flex flex-col items-center gap-2">
+                  <Plus className="size-6" />
+                  <div className="">New page</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </>
   );
 }
@@ -130,8 +202,6 @@ function ClientEditPage({
   links: links[];
   userInfo: UserInfo;
 }) {
-  const [searchFocus, setSearchFocus] = useState(false);
-
   const [currentLayout, setCurrentLayout] = useState<LayoutStuff | null>(
     selectedPage.layout,
   );
@@ -146,17 +216,41 @@ function ClientEditPage({
     selectedPage,
   );
 
-  const inputRef = useRef<HTMLInputElement>(null);
-
   const [currentViewType, setCurrentViewType] =
     useState<OptionsViewModelType>(null);
 
-  const focusInput = () => {
-    inputRef.current?.focus();
-  };
-
   async function update() {
+    const newPage = getNewPage();
+    if (!newPage) return;
+
+    const model: GridPageProps =
+      {
+        infoModel: currentInfo,
+        loading: false,
+        customisationOptions: currentCustomisationOptions,
+        currentLayout: currentLayout,
+        userInfo: {
+          fullName: userInfo?.fullName ?? null,
+          imageUrl: userInfo?.imageUrl ?? null,
+          username: userInfo?.username ?? null,
+        },
+        links: links,
+        selectedLinks: selectedLinks,
+      }
+
+    await updatePage(newPage);
+
+    const url = await captureGridAndUpload(`/${userInfo?.username}/${currentInfo?.slug}`)
+    console.log("url", url)
+    if (!url) return
+    if (!selectedPage) return
+    await updatePageScreenshot(selectedPage.id, url)
+    alert("All Done... You can exit the editor now")
+  }
+
+  function getNewPage() {
     if (!currentInfo) return;
+
     const newPage: pages = {
       ...selectedPage,
 
@@ -168,22 +262,38 @@ function ClientEditPage({
       links: selectedLinks,
       customisationOptions: currentCustomisationOptions,
       layout: currentLayout,
-    
     };
 
-    await updatePage(newPage);
-    alert("Updated");
+    return newPage;
   }
 
   function selectLink(id: number | null) {
     if (!id) return;
-    setCurrentLayout({...currentLayout, xl: [...currentLayout?.xl ?? [], {i: String(id), x: 0, y: 0, w: 1, h: 1, isResizable: true, maxW: 2, maxH: 2}]});
+    setCurrentLayout({
+      ...currentLayout,
+      xl: [
+        ...(currentLayout?.xl ?? []),
+        {
+          i: String(id),
+          x: 0,
+          y: 0,
+          w: 1,
+          h: 1,
+          isResizable: true,
+          maxW: 2,
+          maxH: 2,
+        },
+      ],
+    });
     setSelectedLinks([...selectedPage?.links, id]);
   }
 
   function unselectLink(id: number | null) {
     if (!id) return;
-    setCurrentLayout({...currentLayout, xl: currentLayout?.xl?.filter((l) => l.i !== String(id)) ?? []});
+    setCurrentLayout({
+      ...currentLayout,
+      xl: currentLayout?.xl?.filter((l) => l.i !== String(id)) ?? [],
+    });
     setSelectedLinks(selectedPage?.links.filter((l) => l !== id));
   }
 
@@ -229,102 +339,72 @@ function ClientEditPage({
   }
 
   return (
-    <div className="h-full max-h-screen overflow-y-hidden bg-[#110e21] text-[#c4c5ea]">
-      <div className="flex w-full items-center justify-between p-4">
-        <div className="flex w-full items-center gap-16">
+    <div className="flex h-[calc(100vh-84px)] w-full">
+      {currentCustomisationOptions !== selectedPage.customisationOptions && (
+        <div className="absolute bottom-10 right-10 z-10 rounded-3xl bg-[#181724] p-4 text-xs outline outline-[#110e21]">
           <div className="flex items-center gap-4">
-            <div className="flex aspect-square h-10 items-center justify-center rounded-full bg-[#9193b3]/70 text-white outline outline-[#9193b3]/50">
-              <Link className="m-auto" size={20} />
+            <div className="flex flex-col gap-1">
+              <div className="text-base opacity-90">Looks Awesome!</div>
+
+              <div className="opacity-50">You have unsaved changes</div>
             </div>
-            <div className="text-xl font-semibold">LinkifyIT</div>
-          </div>
-          <div
-            onClick={focusInput}
-            className={`flex w-6/12 items-center gap-2 rounded-full bg-[#181726] p-3 ${searchFocus && "outline"} outline-2 outline-[#d97fb0]`}
-          >
-            <Search className="size-5 cursor-pointer" />
-            <input
-              type="text"
-              ref={inputRef}
-              className="w-full bg-transparent outline-none focus:outline-none"
-              onFocus={() => setSearchFocus(true)}
-              onBlur={() => setSearchFocus(false)}
-              placeholder="Try Searching..."
-            />
+            <button
+              className="rounded-full bg-[#d97fb0] p-3 text-white hover:bg-[#9193b3]"
+              onClick={(e) => {
+                e.preventDefault();
+                update();
+              }}
+            >
+              Save changes
+            </button>
           </div>
         </div>
+      )}
 
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            update();
-          }}
-          className="mx-4 cursor-pointer rounded-3xl bg-[#3f7c7a] p-2"
-        >
-          update
-        </button>
-
-        <div className="flex items-center gap-4">
-          <SignedIn>
-            <div className="flex items-center gap-4 rounded-full bg-[#181726] p-3">
-              <Menu className="size-5 cursor-pointer" />
-              <UserButton />
-            </div>
-          </SignedIn>
-          <SignedOut>
-            <SignInButton />
-          </SignedOut>
-          <div className="cursor-pointer rounded-full bg-[#d97fb0] p-3 text-white hover:bg-[#9193b3]">
-            <Plus className="size-5" />
-          </div>
-        </div>
-      </div>
-      <div className="flex h-[calc(100vh-84px)] w-full">
-        <div className="ms-4 flex flex-col justify-between py-6">
-          <div className="flex flex-col gap-4">
-            <PageButton
-              name="Customize"
-              selectedState={currentViewType === "Customize"}
-              icon={Paintbrush}
-              action={() => toggleView("Customize")}
-            />
-            <PageButton
-              name="Page"
-              selectedState={currentViewType === "Page"}
-              icon={Layers2}
-              action={() => toggleView("Page")}
-            />
-            <PageButton
-              name="Link"
-              selectedState={currentViewType === "Link"}
-              icon={Link2}
-              action={() => toggleView("Link")}
-            />
-          </div>
-          <div className="flex flex-col gap-4">
-            <PageButton name="What's new" icon={Hash} />
-            <PageButton name="Docs" icon={FileText} />
-          </div>
-        </div>
-
-        {getCurrentOptionsView()}
-
-        <div className="minimal-scrollbar ms-5 min-h-full w-full overflow-y-auto rounded-3xl border-2 border-[#181726]">
-          <GridPage
-            unselectLink={unselectLink}
-            infoModel={currentInfo}
-            customisationOptions={currentCustomisationOptions}
-            currentLayout={currentLayout}
-            setCurrentLayout={setCurrentLayout}
-            userInfo={{
-              fullName: userInfo?.fullName ?? null,
-              imageUrl: userInfo?.imageUrl ?? null,
-              username: userInfo?.username ?? null,
-            }}
-            links={links}
-            selectedLinks={selectedLinks}
+      <div className="ms-4 flex flex-col justify-between py-6">
+        <div className="flex flex-col gap-4">
+          <PageButton
+            name="Customize"
+            selectedState={currentViewType === "Customize"}
+            icon={Paintbrush}
+            action={() => toggleView("Customize")}
+          />
+          <PageButton
+            name="Page"
+            selectedState={currentViewType === "Page"}
+            icon={Layers2}
+            action={() => toggleView("Page")}
+          />
+          <PageButton
+            name="Link"
+            selectedState={currentViewType === "Link"}
+            icon={Link2}
+            action={() => toggleView("Link")}
           />
         </div>
+        <div className="flex flex-col gap-4">
+          <PageButton name="What's new" icon={Hash} />
+          <PageButton name="Docs" icon={FileText} />
+        </div>
+      </div>
+
+      {getCurrentOptionsView()}
+
+      <div className="minimal-scrollbar ms-5 min-h-full w-full overflow-y-auto rounded-3xl border-2 border-[#181726]">
+        <GridPage
+          unselectLink={unselectLink}
+          infoModel={currentInfo}
+          customisationOptions={currentCustomisationOptions}
+          currentLayout={currentLayout}
+          setCurrentLayout={setCurrentLayout}
+          userInfo={{
+            fullName: userInfo?.fullName ?? null,
+            imageUrl: userInfo?.imageUrl ?? null,
+            username: userInfo?.username ?? null,
+          }}
+          links={links}
+          selectedLinks={selectedLinks}
+        />
       </div>
     </div>
   );

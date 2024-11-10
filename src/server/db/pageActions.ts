@@ -21,3 +21,12 @@ export async function updatePage(newPage: pages) {
     })
     .where(eq(pagesSchema.id, newPage.id));
 }
+
+export async function updatePageScreenshot(id: number,screenshot: string) {
+  await db
+    .update(pagesSchema)
+    .set({
+      screenshot: screenshot,
+    })
+    .where(eq(pagesSchema.id, id));
+}

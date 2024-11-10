@@ -63,6 +63,7 @@ export const pages = createTable(
     links: integer("linkIDs").array().notNull(),
     layout: json("layout").$type<LayoutStuff | null>(),
     customisationOptions: json("customisationOptions").$type<CustomiseOptionsModel | null>(),
+    screenshot: varchar("screenshot"),
 
     disable: boolean("disable").default(false),
 

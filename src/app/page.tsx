@@ -18,19 +18,26 @@ const CustomUploadButton = () => {
   return (
     <div className="flex items-center justify-center h-screen">
       <div className="w-24 h-24 bg-gray-200 flex items-center justify-center rounded-lg shadow-md">
-      <UploadButton
-      className="text-gray-800 font-bold"
-        endpoint="imageUploader"
-        onClientUploadComplete={(res) => {
-          // Do something with the response
-          console.log("Files: ", res);
-          alert("Upload Completed");
-        }}
-        onUploadError={(error: Error) => {
-          // Do something with the error.
-          alert(`ERROR! ${error.message}`);
-        }}
-      />
+      <div className="absolute right-10 bottom-10 z-10 bg-[#181724] outline outline-[#110e21] p-4 rounded-3xl text-xs">
+        <div className="flex gap-4 items-center">
+          <div className="flex flex-col gap-1">
+            <div className="text-base opacity-90">
+              Looks Awesome!
+            </div>
+
+            <div className="opacity-50">You have unsaved changes</div>
+          </div>
+          <button
+            className="rounded-full bg-[#d97fb0] p-3 text-white hover:bg-[#9193b3]"
+            onClick={(e) => {
+              e.preventDefault();
+              //update();
+            }}
+          >
+            Save changes
+          </button>
+        </div>
+      </div>
       </div>
     </div>
   );

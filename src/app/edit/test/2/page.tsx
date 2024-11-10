@@ -16,6 +16,18 @@ import { SignedOut, SignUpButton, useClerk } from "@clerk/nextjs";
 import { defaultCustomisationOptions } from "../../page";
 import { CSSProperties } from "styled-components";
 
+export interface GridPageProps {
+  links: links[];
+  selectedLinks?: number[];
+  loading?: boolean; // This specifies that the grid is either in edit mode (==undefined) or in view mode (==defined)
+  customisationOptions: CustomiseOptionsModel;
+  userInfo: UserInfo;
+  infoModel: InfoModel | null;
+  currentLayout: LayoutStuff | null;
+  setCurrentLayout?: Dispatch<SetStateAction<LayoutStuff | null>>;
+  unselectLink?: (id: number | null) => void;
+}
+
 export default function GridPage({
   links,
   userInfo,
@@ -26,17 +38,7 @@ export default function GridPage({
   currentLayout,
   setCurrentLayout,
   unselectLink,
-}: {
-  links: links[];
-  selectedLinks?: number[];
-  loading?: boolean; // This specifies that the grid is either in edit mode (==undefined) or in view mode (==defined)
-  customisationOptions: CustomiseOptionsModel;
-  userInfo: UserInfo;
-  infoModel: InfoModel | null;
-  currentLayout: LayoutStuff | null;
-  setCurrentLayout: Dispatch<SetStateAction<LayoutStuff | null>>;
-  unselectLink?: (id: number | null) => void;
-}) {
+}: GridPageProps) {
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 }); // will be removed later
 
   useEffect(() => {
@@ -102,6 +104,7 @@ export default function GridPage({
   }
 
   function handleResize(id: string, size: "small" | "medium" | "large") {
+    if (!setCurrentLayout) return
     const currentItem = currentLayout?.xl?.find((item) => item.i == id);
     if (!currentItem) return;
 
@@ -123,6 +126,7 @@ export default function GridPage({
   }
 
   function saveLayout(newLayout: Layout[]) {
+    if (!setCurrentLayout) return
     if (currentLayout?.xl !== newLayout) {
       setCurrentLayout({
         xl: newLayout,
