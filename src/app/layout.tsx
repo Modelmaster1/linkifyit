@@ -1,6 +1,7 @@
 import "~/styles/globals.css";
 
 import { GeistSans } from "geist/font/sans";
+import { Toaster } from "~/components/ui/toaster"
 import { type Metadata } from "next";
 import { ThemeProvider } from "~/components/theme-provider";
 import { ClerkProvider } from "@clerk/nextjs";
@@ -36,6 +37,8 @@ export default function RootLayout({
               disableTransitionOnChange
             >
               {children}
+              <Toaster />
+              
             </ThemeProvider>
           </body>
         </html>

@@ -5,7 +5,7 @@ import { use, useEffect, useState } from "react";
 import { links, pages } from "~/app/models";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { getLinks, getPages } from "~/server/getUserItems";
+import { getLinks, getPages } from "~/server/db/getUserItems";
 
 export default function LinkPage() {
   const [loading, setLoading] = useState<boolean>(false);

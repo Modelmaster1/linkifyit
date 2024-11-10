@@ -11,7 +11,12 @@ import {
   timestamp,
   boolean,
   varchar,
+  json,
 } from "drizzle-orm/pg-core";
+import { link } from "fs";
+import { LayoutStuff } from "~/app/edit/test/2/gridOptions";
+import CustomiseOptions from "~/app/edit/test/_comps/customise";
+import { CustomiseOptionsModel } from "~/app/models";
 
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
@@ -53,7 +58,11 @@ export const pages = createTable(
     description: varchar("overrideDescription", { length: 500 }),
     ownerId: varchar("ownerId", { length: 256 }),
 
+    imageURL: varchar("imageUrl"),
+
     links: integer("linkIDs").array().notNull(),
+    layout: json("layout").$type<LayoutStuff | null>(),
+    customisationOptions: json("customisationOptions").$type<CustomiseOptionsModel | null>(),
 
     disable: boolean("disable").default(false),
 

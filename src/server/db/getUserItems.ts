@@ -1,7 +1,7 @@
 "use server";
 import { eq } from "drizzle-orm";
-import { db } from "./db";
-import { pages, linkComs } from "./db/schema";
+import { db } from ".";
+import { pages, linkComs } from "./schema";
 
 export async function getPages(userID: string) {
   const items = await db

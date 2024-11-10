@@ -5,7 +5,7 @@ import { use, useEffect, useState } from "react";
 import { pages } from "~/app/models";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { getPages } from "~/server/getUserItems";
+import { getPages } from "~/server/db/getUserItems";
 
 export default function Dashboard() {
   const [loading, setLoading] = useState<boolean>(false);

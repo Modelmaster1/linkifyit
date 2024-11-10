@@ -1,131 +1,43 @@
 "use client";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import MyFirstGrid from "./ cGrid";
 import {
-  Link,
-  LucideProps,
-  Pen,
-  RectangleHorizontal,
-  Scan,
-  Square,
-  X,
-} from "lucide-react";
-import { Responsive as ResponsiveGridLayout } from "react-grid-layout";
-import React, {
-  Dispatch,
-  ForwardRefExoticComponent,
-  RefAttributes,
-  SetStateAction,
-  useEffect,
-  useState,
-} from "react";
-import { Layout } from "react-grid-layout";
-import getDominantColors, { ImgeColorOptions } from "~/server/getColors";
-import "~/styles/gg.css";
+  CustomiseOptionsModel,
+  InfoModel,
+  links,
+  pages,
+  UserInfo,
+} from "~/app/models";
+import { getLinks } from "~/server/db/getUserItems";
+import { Layout, Layouts } from "react-grid-layout";
+import { breakpoints, cols, LayoutStuff } from "./gridOptions";
 import "~/styles/globals.css";
-import { links } from "~/app/models";
-import { getLinks } from "~/server/getUserItems";
-import "~/styles/globals.css";
+import { SignedOut, SignUpButton, useClerk } from "@clerk/nextjs";
+import { defaultCustomisationOptions } from "../../page";
+import { CSSProperties } from "styled-components";
 
-interface BreakpointsStuff {
-  [P: string]: number;
-}
-
-export interface LayoutStuff {
-  [P: string]: Layout[];
-}
-
-export default function MyFirstGrid() {
-  const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
-  const [links, setLinks] = useState<links[]>([]);
-
-  const userID = "user_2hvSqhFlCy1N3hOD80KRXNGR82h"; //workaround because no wifi - useClerk()?.user?.id;
-
-  async function fetchLinks() {
-    if (!userID) {
-      console.log("no id");
-      return;
-    }
-    const result = await getLinks(userID);
-    setLinks(result);
-  }
-
-  useEffect(() => {
-    fetchLinks();
-  }, [userID]);
-
-  const breakpoints: BreakpointsStuff = {
-    xl: 1400,
-    lg: 1000,
-    md: 996,
-    sm: 768,
-    xs: 480,
-    xxs: 240,
-  };
-  const cols: BreakpointsStuff = { xl: 8, lg: 6, md: 4, sm: 3, xs: 2, xxs: 1 };
-
-  const otherProps = { w: 1, h: 1, isResizable: true, maxW: 2, maxH: 2 };
-
-  function getLayouts() {
-    const numOfCols = getCurrentCols();
-    if (!numOfCols) return;
-    let result: LayoutStuff = {};
-    let lastLink: Layout | null = null;
-
-    links.forEach((link) => {
-      const newX = lastLink?.x
-        ? (lastLink.x ?? 0 === numOfCols - 1)
-          ? 0
-          : lastLink.x + 1
-        : 0;
-      const newY = lastLink?.y
-        ? (lastLink.x ?? 0 === numOfCols - 1)
-          ? lastLink.y + 1
-          : lastLink.y
-        : 0;
-
-      const newItem = {
-        i: String(link.id),
-        x: newX,
-        y: newY,
-        ...otherProps,
-      };
-
-      result.xl?.push(newItem);
-      lastLink = newItem;
-    });
-
-    console.log(result);
-
-    return result;
-  }
-
-  function getCurrentCols() {
-    for (const key in breakpoints) {
-      if (windowSize.width === breakpoints[key]) {
-        return cols[`${key}`];
-      }
-    }
-  }
-
-  var defaultLayouts: LayoutStuff = {
-    xl: [
-      { i: "0", x: 0, y: 0, ...otherProps },
-      { i: "1", x: 1, y: 0, ...otherProps },
-      { i: "2", x: 2, y: 0, ...otherProps },
-      { i: "3", x: 3, y: 0, ...otherProps },
-      { i: "4", x: 4, y: 0, ...otherProps },
-      { i: "5", x: 5, y: 0, ...otherProps },
-      { i: "6", x: 6, y: 0, ...otherProps },
-      { i: "7", x: 7, y: 0, ...otherProps },
-      { i: "8", x: 0, y: 1, ...otherProps },
-      { i: "9", x: 1, y: 1, ...otherProps },
-      { i: "10", x: 2, y: 1, ...otherProps },
-      { i: "11", x: 3, y: 1, ...otherProps },
-      { i: "111", x: 4, y: 1, ...otherProps, w: 2 },
-    ],
-  };
-
-  const [currentLayout, setCurrentLayout] =
-    useState<LayoutStuff>(defaultLayouts);
+export default function GridPage({
+  links,
+  userInfo,
+  loading,
+  customisationOptions,
+  selectedLinks,
+  infoModel,
+  currentLayout,
+  setCurrentLayout,
+  unselectLink,
+}: {
+  links: links[];
+  selectedLinks?: number[];
+  loading?: boolean; // This specifies that the grid is either in edit mode (==undefined) or in view mode (==defined)
+  customisationOptions: CustomiseOptionsModel;
+  userInfo: UserInfo;
+  infoModel: InfoModel | null;
+  currentLayout: LayoutStuff | null;
+  setCurrentLayout: Dispatch<SetStateAction<LayoutStuff | null>>;
+  unselectLink?: (id: number | null) => void;
+}) {
+  const [windowSize, setWindowSize] = useState({ width: 0, height: 0 }); // will be removed later
 
   useEffect(() => {
     function handleResize() {
@@ -138,271 +50,180 @@ export default function MyFirstGrid() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  var layouts: LayoutStuff = getLayouts()!;
+  useEffect(() => {
+    generateLayout();
+  }, [links]);
 
-  function handleResize(id: string, size: "small" | "medium" | "large") {
-    const sizeMap = {
-      small: { w: 1, h: 1 },
-      medium: { w: 2, h: 1 },
-      large: { w: 2, h: 2 },
-    };
+  function getCurrentCols() {
+    // Use Math.min and Math.max to get the closest breakpoint value
+    const targetBreakpoint = Object.keys(breakpoints).reduce((a, b) =>
+      breakpoints[a]! <= windowSize.width ? a : b,
+    );
 
-    const { w, h } = sizeMap[size];
-    adjustSize(id, w, h);
+    if (targetBreakpoint in cols) {
+      return {
+        cols: cols[`${targetBreakpoint}`],
+        breakpoint: targetBreakpoint,
+      };
+    }
   }
 
-  function adjustSize(
-    id: string,
-    newW: number,
-    newH: number,
-    prevLayouts?: LayoutStuff,
-  ) {
-    const updatedLayouts = { ...prevLayouts };
+  function generateLayout() {
+    var allLayouts: LayoutStuff = {
+      xl: [],
+      xs: [],
+      xxs: [],
+    };
 
-    for (const breakpoint in updatedLayouts) {
-      if (!updatedLayouts[breakpoint]) continue;
+    var layout: Layout[] = [];
 
-      updatedLayouts[breakpoint] = updatedLayouts[breakpoint].map((item) =>
-        item.i === id ? { ...item, w: newW, h: newH } : item,
-      );
+    const layoutData = getCurrentCols();
+    const numOfCols = layoutData?.cols ?? 0;
+    const oldLayout = currentLayout?.xl;
+
+    for (let i = 0; i < (selectedLinks ?? links).length; i++) {
+      const sID = String(links[i]?.id);
+      const oldItem = oldLayout?.find((item) => item.i == sID);
+
+      layout.push({
+        i: sID,
+        x: oldItem?.x ?? i % numOfCols,
+        y: oldItem?.y ?? Math.floor(i / numOfCols),
+        w: 1,
+        h: 1,
+        isResizable: true,
+        maxW: 2,
+        maxH: 2,
+      });
     }
 
-    return (updatedLayouts);
+    allLayouts.xl = layout;
+    return allLayouts;
   }
 
-  // layout is an array of objects, see the demo for more complete usage
+  function handleResize(id: string, size: "small" | "medium" | "large") {
+    const currentItem = currentLayout?.xl?.find((item) => item.i == id);
+    if (!currentItem) return;
+
+    const sizeMap = {
+      small: { newW: 1, newH: 1 },
+      medium: { newW: 2, newH: 1 },
+      large: { newW: 2, newH: 2 },
+    };
+
+    const { newW, newH } = sizeMap[size];
+    const newLayoutItem: Layout = { ...currentItem, w: newW, h: newH };
+    setCurrentLayout({
+      ...currentLayout,
+      xl:
+        currentLayout?.xl?.map((item) =>
+          item.i == id ? newLayoutItem : item,
+        ) ?? [],
+    });
+  }
+
+  function saveLayout(newLayout: Layout[]) {
+    if (currentLayout?.xl !== newLayout) {
+      setCurrentLayout({
+        xl: newLayout,
+      });
+    }
+  }
+
   return (
     <div
-      className="overflow-x-hidden bg-[#110e21] text-[#c4c5ea]"
-      style={{ width: "100vw", height: "100vh" }}
+      className="min-h-screen text-[#c4c5ea]"
+      style={{
+        backgroundColor: customisationOptions.backgroundColor,
+        paddingBottom: "40px",
+      }}
     >
-      <ResponsiveGridLayout
-        className="layout"
-        cols={cols}
-        layouts={defaultLayouts}
-        breakpoints={breakpoints}
-        width={windowSize.width}
-        compactType="vertical"
-        verticalCompact={true}
-        onLayoutChange={(newLayout) => {
-          if (currentLayout.xl !== newLayout) {
-            const resized8 = adjustSize("8", 2, 2, {xl: newLayout});
-            setCurrentLayout({
-              xl: resized8.xl ?? []
-            });
-          }
-        }}
-      >
-        {currentLayout.xl &&
-          currentLayout.xl
-            .filter((item) => item.i !== "111")
-            .map((item, index) => (
-              <div key={item.i}>
-                <LinkView
-                  handleResize={handleResize}
-                  currentLayout={currentLayout}
-                  setCurrentLayout={setCurrentLayout}
-                  layoutProps={item}
-                  item={links[index]}
-                />
-              </div>
-            ))}
-      </ResponsiveGridLayout>
-    </div>
-  );
-}
-
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuTrigger,
-} from "~/components/ui/context-menu";
-
-export function LinkView({
-  item,
-  layoutProps,
-  currentLayout,
-  setCurrentLayout,
-  handleResize,
-}: {
-  item: links | undefined;
-  layoutProps: Layout;
-  currentLayout: LayoutStuff;
-  setCurrentLayout: Dispatch<React.SetStateAction<LayoutStuff>>;
-  handleResize: (id: string, size: "small" | "medium" | "large") => void;
-}) {
-  const [colors, setColors] = useState<string[]>([]);
-  const imageURL = item?.iconURL ?? undefined;
-  const [label, setLabel] = useState(item?.name ?? "none");
-
-  useEffect(() => {
-    // Fetch the dominant colors when the component is mounted
-    console.log("starting");
-    if (!imageURL) return;
-
-    const options: ImgeColorOptions = {
-      url: imageURL,
-      excludeBlackAndWhite: true,
-      numOfColors: 5,
-      notToDark: true,
-      notToBright: false,
-    };
-    getDominantColors(options).then(setColors).catch(console.error);
-  }, [imageURL]);
-
-  return (
-    <ContextMenu>
-      <ContextMenuTrigger>
-        <div
-          className="h-full text-white"
-          style={{
-            borderRadius: "2rem",
-            background: `${colors.length <= 0 ? "rgb(24 23 37 / 1)" : `linear-gradient(45deg, ${colors[0]}, ${colors[1]}, ${colors[2]})`}`,
-          }}
-        >
-          <div
-            className="flex h-full flex-col justify-between p-3"
-            style={{
-              borderRadius: "2rem",
-              //aspectRatio: 1/1"
-              background: "rgb(24 23 37 / 0.5)",
-            }}
-          >
-            <img
-              className="h-14 w-14 overflow-hidden object-cover"
-              style={{ borderRadius: "1.4rem" }}
-              src={imageURL ?? undefined}
-            />
-            <div className="pb-2 ps-1">
-              {item?.name ?? "none"} - {layoutProps.i}
-            </div>
-          </div>
-        </div>
-      </ContextMenuTrigger>
-      <ContextMenuContent
-        className="rounded-3xl text-[#c4c5ea] drop-shadow-lg"
-        style={{ backgroundColor: "#181725" }}
-      >
-        <input
-          value={label}
-          placeholder="Name"
-          onChange={(e) => setLabel(e.target.value)}
-          className="m-5 w-[250px] rounded-3xl bg-[#181726] p-2 text-sm text-white outline outline-[#9193b3]/20"
-        />
-        <div
-          className="-mt-1 w-full bg-[#9193b3]/20"
-          style={{ height: "2px" }}
-        />
-        <div className="mx-5 mt-2 text-sm opacity-50">
-          change the name for all pages
-        </div>
-
-        <div
-          className="mx-5 mt-2 flex h-20 items-center justify-evenly bg-[#110e21] p-2"
-          style={{ borderRadius: "2rem" }}
-        >
-          <div
-            className={`flex h-full w-full flex-col items-center justify-center rounded-3xl ${layoutProps.w == 1 && "bg-[#d97fb0]/80"}`}
-            onClick={() => handleResize(layoutProps.i, "small")}
-          >
-            <Square />
-            <div className="text-xs">small</div>
-          </div>
-          <div
-            className={`flex h-full w-full flex-col items-center justify-center rounded-3xl ${layoutProps.w == 2 && layoutProps.h == 1 && "bg-[#d97fb0]/80"}`}
-            onClick={() => handleResize(layoutProps.i, "medium")}
-          >
-            <RectangleHorizontal />
-            <div className="text-xs">medium</div>
-          </div>
-          <div
-            className={`flex h-full w-full flex-col items-center justify-center rounded-3xl ${layoutProps.w == 2 && layoutProps.h == 2 && "bg-[#d97fb0]/80"}`}
-            onClick={() => handleResize(layoutProps.i, "large")}
-          >
-            <Scan />
-            <div className="text-xs">large</div>
-          </div>
-        </div>
-        <div className="mx-5 mt-4 text-base opacity-50">Actions</div>
-        <div className="mx-5 mb-5 mt-2 flex flex-col gap-1 text-sm">
-          <LinkContextAction name="Edit Link" Icon={Pen} />
-          <LinkContextAction name="Remove Link from Page" Icon={X} />
-        </div>
-      </ContextMenuContent>
-    </ContextMenu>
-  );
-}
-
-interface LinkContextActionProps {
-  name: string;
-  Icon: ForwardRefExoticComponent<
-    Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>
-  >;
-}
-
-function LinkContextAction({ name, Icon }: LinkContextActionProps) {
-  return (
-    <div className="flex cursor-pointer items-center justify-between rounded-full opacity-50 hover:bg-[#110e21]/80 hover:text-white hover:opacity-100">
-      <div className="flex items-center gap-2 p-2">
-        <Icon className="size-4" />
-        <div>{name}</div>
-      </div>
-    </div>
-  );
-}
-
-export function LinkViewMedium() {
-  const [colors, setColors] = useState<string[]>([]);
-  const imageURL =
-    "https://static.cdninstagram.com/rsrc.php/v3/yR/r/hexDR1NOpRC.png";
-
-  useEffect(() => {
-    // Fetch the dominant colors when the component is mounted
-    console.log("starting");
-    if (!imageURL) return;
-
-    const options: ImgeColorOptions = {
-      url: imageURL,
-      excludeBlackAndWhite: true,
-      numOfColors: 5,
-      notToDark: true,
-      notToBright: false,
-    };
-    getDominantColors(options).then(setColors).catch(console.error);
-  }, []);
-
-  return (
-    <>
       <div
-        className="w-[300px] bg-red-500"
-        style={{
-          borderRadius: "2rem",
-          background: `linear-gradient(45deg, ${colors[0]}, ${colors[1]}, ${colors[2]})`,
-        }}
+        className={`flex flex-col gap-2 overflow-x-auto ${loading == true && "animate-pulse"}`}
       >
         <div
-          className="flex flex-row justify-between gap-8 bg-gray-900/70 p-3"
+          className="flex flex-col gap-4"
           style={{
-            borderRadius: "2rem",
-            aspectRatio: 2 / 1,
+            marginLeft: "80px",
+            marginRight: "80px",
+            marginTop: "80px",
+            marginBottom: "20px",
           }}
         >
-          <div className="flex h-full flex-col justify-between">
-            <img
-              className="h-14 w-14 overflow-hidden object-cover"
-              style={{ borderRadius: "1.4rem" }}
-              src={imageURL}
-            />
-            <div className="pb-2 ps-1">Instagram</div>
-          </div>
-          <div className="flex h-full flex-col justify-center">
-            <div className="text-sm">
-              hello this right here is an account that you should definetly
-              follow right away
+          <div className="flex flex-col items-center gap-4 md:gap-8 lg:flex-row">
+            <div className="bg-[#181724]" style={{ borderRadius: "2.5rem" }}>
+              <img
+                src={infoModel?.imageURL ?? userInfo.imageUrl ?? undefined}
+                className="aspect-square h-[120px] object-cover outline outline-2 outline-[#9193b3]/50 md:h-[150px]"
+                style={{
+                  borderRadius: "2.5rem",
+                  opacity: userInfo.imageUrl ? 1 : 0,
+                }}
+              />
+            </div>
+
+            <div className="flex w-[500px] max-w-full flex-col items-center gap-2 text-center lg:items-start lg:text-start">
+              <div
+                className="text-xl font-medium md:text-3xl"
+                style={{
+                  background: userInfo.username ? "transparent" : "#181724",
+                  color: userInfo.username ? undefined : "#181724",
+                  borderRadius: "2rem",
+                }}
+              >
+                {infoModel?.overrideName ??
+                  userInfo.fullName ??
+                  userInfo.username ??
+                  "User has not loaded yet..."}
+              </div>
+              <div className="text-sm opacity-70 md:text-base">
+                {infoModel?.description ?? null}
+              </div>
             </div>
           </div>
         </div>
+        <div className={userInfo.username ? "relative" : undefined}>
+          <MyFirstGrid
+            editMode={loading == undefined}
+            currentCustomisationOptions={customisationOptions}
+            handleResize={handleResize}
+            links={links}
+            unselectLink={unselectLink}
+            windowSize={windowSize}
+            layout={currentLayout ?? generateLayout()}
+            saveLayout={saveLayout}
+          />
+          {loading == false && !infoModel && (
+            <div
+              className="absolute left-0 top-0 flex h-full w-full items-center justify-center"
+              style={{
+                backgroundColor: "rgb(17 14 33 / 0.4)",
+                backdropFilter: "blur(5px)",
+              }}
+            >
+              <div className="flex flex-col items-center gap-2">
+                <div className="text-xl font-semibold">
+                  {!userInfo.username
+                    ? "The username you're looking for doesn't exist."
+                    : "The page you're looking for doesn't exist."}
+                </div>
+                <div className="text-base opacity-80">
+                  {!userInfo.username
+                    ? "Looks like this username is still available... Claim it before it is to late!"
+                    : "Huh... This page doesn't exist. Make sure you spelled the name correctly."}
+                </div>
+                {!userInfo.username && (
+                  <SignedOut>
+                    <SignUpButton />
+                  </SignedOut>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </>
+    </div>
   );
 }
+
+//fix resizing isssue when sizing up. Problem = oldLayout in generate layout...
