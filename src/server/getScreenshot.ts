@@ -48,7 +48,7 @@ export async function captureGridAndUpload(
   url: string
 ): Promise<string | null> {
   try {
-    const fullURL = env.BASE_URL + url;
+    const fullURL = env.BASE_URL ?? "https://linkifyit.vercel.app" + url;
     const screenshotBuffer = await captureScreenshot(fullURL);
     const uploadUrl = await uploadToUploadThing(screenshotBuffer);
     return uploadUrl;
